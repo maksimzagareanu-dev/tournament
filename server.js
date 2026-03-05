@@ -54,7 +54,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
-/* ================= EMAIL ================= */
 
 /* ================= EMAIL ================= */
 
@@ -123,18 +122,6 @@ app.post("/register", upload.single("logo"), async (req, res) => {
   } catch (err) {
     console.log("❌ /register error:", err);
     if (!res.headersSent) res.status(500).send("Eroare server");
-  }
-});
-
-//  Удалить команду по id
-app.delete("/teams/:id", requireAdmin, async (req, res) => {
-  try {
-    const deleted = await Team.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).send("Not found");
-    res.send("Deleted");
-  } catch (e) {
-    console.log("❌ delete error:", e);
-    res.status(500).send("Server error");
   }
 });
 
