@@ -2,7 +2,7 @@ require("dotenv").config()
 const express = require("express")
 const mongoose = require("mongoose")
 const multer = require("multer")
-const nodemailer = require("nodemailer")
+// const nodemailer = require("nodemailer")
 const dns = require("dns");
 const cors = require("cors")
 const path = require("path")
@@ -61,21 +61,21 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
   console.log(" EMAIL_USER / EMAIL_PASS missing in .env");
 }
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  // заставляем использовать IPv4
-  lookup: (hostname, options, cb) => dns.lookup(hostname, { family: 4 }, cb),
-  connectionTimeout: 15000,
-  greetingTimeout: 15000,
-  socketTimeout: 20000,
-  requireTLS: true,
-});
+// const transporter = nodemailer.createTransport({
+//   host: "smtp.gmail.com",
+//   port: 587,
+//   secure: false,
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASS
+//   },
+//   // заставляем использовать IPv4
+//   lookup: (hostname, options, cb) => dns.lookup(hostname, { family: 4 }, cb),
+//   connectionTimeout: 15000,
+//   greetingTimeout: 15000,
+//   socketTimeout: 20000,
+//   requireTLS: true,
+// });
 
 // transporter.verify((err) => {
 //   if (err) console.log(" Mail config error:", err);
