@@ -61,7 +61,7 @@ const upload = multer({ storage })
 /* ================= EMAIL ================= */
 
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.log("❌ EMAIL_USER / EMAIL_PASS missing in .env");
+  console.log(" EMAIL_USER / EMAIL_PASS missing in .env");
 }
 
 const transporter = nodemailer.createTransport({
@@ -73,8 +73,8 @@ const transporter = nodemailer.createTransport({
 });
 
 // transporter.verify((err) => {
-//   if (err) console.log("❌ Mail config error:", err);
-//   else console.log("✅ Mail transporter ready");
+//   if (err) console.log(" Mail config error:", err);
+//   else console.log(" Mail transporter ready");
 // });
 
 /* ================= ROUTES ================= */
@@ -98,10 +98,10 @@ app.post("/register", upload.single("logo"), async (req, res) => {
 
     await newTeam.save();
 
-    // ✅ ответ сразу — регистрация не зависнет
+    //  ответ сразу — регистрация не зависнет
     res.send("Înregistrare reușită");
 
-    // ✅ почта не должна ломать регистрацию
+    //  почта не должна ломать регистрацию
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       transporter.sendMail({
         from: process.env.EMAIL_USER,
@@ -117,6 +117,26 @@ app.post("/register", upload.single("logo"), async (req, res) => {
   } catch (err) {
     console.log("❌ /register error:", err);
     if (!res.headersSent) res.status(500).send("Eroare server");
+  }
+});
+
+//  Простая защита админки токеном
+function requireAdmin(req, res, next) {
+  const token = req.headers["x-admin-token"]; // будем слать из админки
+  if (!process.env.ADMIN_TOKEN) return res.status(500).send("ADMIN_TOKEN missing");
+  if (token !== process.env.ADMIN_TOKEN) return res.status(401).send("Unauthorized");
+  next();
+}
+
+//  Удалить команду по id
+app.delete("/teams/:id", requireAdmin, async (req, res) => {
+  try {
+    const deleted = await Team.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).send("Not found");
+    res.send("Deleted");
+  } catch (e) {
+    console.log("❌ delete error:", e);
+    res.status(500).send("Server error");
   }
 });
 
