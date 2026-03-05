@@ -72,56 +72,53 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-transporter.verify((err) => {
-  if (err) console.log("❌ Mail config error:", err);
-  else console.log("✅ Mail transporter ready");
-});
+// transporter.verify((err) => {
+//   if (err) console.log("❌ Mail config error:", err);
+//   else console.log("✅ Mail transporter ready");
+// });
 
 /* ================= ROUTES ================= */
 
 app.post("/register", upload.single("logo"), async (req, res) => {
   try {
-    const { firstName, lastName, phone, birthYear, teamName } = req.body
+    const { firstName, lastName, phone, birthYear, teamName } = req.body;
 
     if (![2007,2008,2009,2010].includes(Number(birthYear))) {
-      return res.status(400).send("Invalid year")
+      return res.status(400).send("Invalid year");
     }
 
     const newTeam = new Team({
       firstName,
       lastName,
       phone,
-      birthYear,
+      birthYear: Number(birthYear),
       teamName,
       logo: req.file ? req.file.path : null
-    })
+    });
 
-    await newTeam.save()
+    await newTeam.save();
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-      subject: "Nouă echipă înscrisă",
-      text: `
-      Nume: ${firstName} ${lastName}
-      Telefon: ${phone}
-      An: ${birthYear}
-      Echipă: ${teamName}
-      `,
-      attachments: req.file ? [
-        {
-          filename: req.file.filename,
-          path: req.file.path
-        }
-      ] : []
-    })
+    // ✅ ответ сразу — регистрация не зависнет
+    res.send("Înregistrare reușită");
 
-    res.send("Înregistrare reușită")
+    // ✅ почта не должна ломать регистрацию
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: process.env.EMAIL_TO || process.env.EMAIL_USER,
+        subject: "Nouă echipă înscrisă",
+        text: `Nume: ${firstName} ${lastName}\nTelefon: ${phone}\nAn: ${birthYear}\nEchipă: ${teamName}\n`,
+        attachments: req.file ? [{ filename: req.file.filename, path: req.file.path }] : []
+      }).catch(err => console.log("❌ sendMail error:", err));
+    } else {
+      console.log("⚠️ Email disabled: missing EMAIL_USER/EMAIL_PASS");
+    }
+
   } catch (err) {
-    console.log(err)
-    res.status(500).send("Eroare server")
+    console.log("❌ /register error:", err);
+    if (!res.headersSent) res.status(500).send("Eroare server");
   }
-})
+});
 
 app.get("/teams", async (req, res) => {
   const teams = await Team.find()
