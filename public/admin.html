@@ -18,9 +18,9 @@
   <h2>Админка</h2>
 
   <div class="row">
-    <input id="token" placeholder="ADMIN_TOKEN" />
+    <input id="token" type="password" placeholder="SmC2002LKw" />
+    <button id="save">Войти</button>
     <button id="load">Загрузить список</button>
-    <small>Токен нужен, чтобы никто чужой не удалял</small>
   </div>
 
   <div id="list"></div>
@@ -72,6 +72,16 @@
         alert("Ошибка: " + text);
         return;
       }
+
+      // при открытии страницы подставим сохранённый пароль
+tokenEl.value = localStorage.getItem("ADMIN_TOKEN") || "";
+
+document.getElementById("save").addEventListener("click", () => {
+  const t = tokenEl.value.trim();
+  if (!t) return alert("Введи пароль");
+  localStorage.setItem("ADMIN_TOKEN", t);
+  alert("Сохранено ✅");
+});
 
       // обновим список
       loadTeams();

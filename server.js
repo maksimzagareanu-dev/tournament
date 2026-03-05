@@ -65,7 +65,9 @@ if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
 }
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
@@ -120,14 +122,6 @@ app.post("/register", upload.single("logo"), async (req, res) => {
   }
 });
 
-//  Простая защита админки токеном
-function requireAdmin(req, res, next) {
-  const token = req.headers["x-admin-token"]; // будем слать из админки
-  if (!process.env.ADMIN_TOKEN) return res.status(500).send("ADMIN_TOKEN missing");
-  if (token !== process.env.ADMIN_TOKEN) return res.status(401).send("Unauthorized");
-  next();
-}
-
 //  Удалить команду по id
 app.delete("/teams/:id", requireAdmin, async (req, res) => {
   try {
@@ -140,10 +134,19 @@ app.delete("/teams/:id", requireAdmin, async (req, res) => {
   }
 });
 
+//  Простая защита админки токеном
+function requireAdmin(req, res, next) {
+  const token = req.headers["x-admin-token"]; // будем слать из админки
+  if (!process.env.ADMIN_TOKEN) return res.status(500).send("ADMIN_TOKEN missing");
+  if (token !== process.env.ADMIN_TOKEN) return res.status(401).send("Unauthorized");
+  next();
+}
+
 app.get("/teams", async (req, res) => {
   const teams = await Team.find()
   res.json(teams)
 })
+
 
 app.delete("/teams/:id", async (req, res) => {
   try {
