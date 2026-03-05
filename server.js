@@ -3,6 +3,7 @@ const express = require("express")
 const mongoose = require("mongoose")
 const multer = require("multer")
 const nodemailer = require("nodemailer")
+const dns = require("dns");
 
 const cors = require("cors")
 const path = require("path")
@@ -71,7 +72,13 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  }
+  },
+  // заставляем использовать IPv4
+  lookup: (hostname, options, cb) => dns.lookup(hostname, { family: 4 }, cb),
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000,
+  requireTLS: true,
 });
 
 // transporter.verify((err) => {
