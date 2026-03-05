@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Înscriere echipă</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+<h1>Înscriere echipă – Turneu Fotbal</h1>
+
+<form action="/register" method="POST" enctype="multipart/form-data">
+  <input name="firstName" placeholder="Prenume" required>
+  <input name="lastName" placeholder="Nume" required>
+  <input name="phone" placeholder="Telefon" required>
+
+  <select name="birthYear" required>
+    <option value="">An naștere</option>
+    <option>2007</option>
+    <option>2008</option>
+    <option>2009</option>
+    <option>2010</option>
+  </select>
+
+  <input name="teamName" placeholder="Nume echipă" required>
+  <input type="file" name="logo" accept="image/*" required>
+
+  <button>Trimite înscrierea</button>
+</form>
+
+<div class="teams">
+  <h2>Echipe înscrise:</h2>
+  <ul id="teams"></ul>
+</div>
+
+</div>
+
+<script>
+fetch("/teams")
+.then(res => res.json())
+.then(data => {
+  const list = document.getElementById("teams")
+  data.forEach(team => {
+    const li = document.createElement("li")
+    li.className = "team-item"
+    li.textContent = team.teamName + " (" + team.birthYear + ")"
+    list.appendChild(li)
+  })
+})
+</script>
+
+</body>
+</html>
