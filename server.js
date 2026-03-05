@@ -7,8 +7,11 @@ const dns = require("dns");
 const cors = require("cors")
 const path = require("path")
 const fs = require("fs");
-
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 const uploadsDir = path.join(__dirname, "uploads");
+
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -107,15 +110,19 @@ app.post("/register", upload.single("logo"), async (req, res) => {
     res.send("Înregistrare reușită");
 
     //  почта не должна ломать регистрацию
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-        subject: "Nouă echipă înscrisă",
-        text: `Nume: ${firstName} ${lastName}\nTelefon: ${phone}\nAn: ${birthYear}\nEchipă: ${teamName}\n`,
-        attachments: req.file ? [{ filename: req.file.filename, path: req.file.path }] : []
-      }).catch(err => console.log("❌ sendMail error:", err));
-    } else {
+    if (process.env.RESEND_API_KEY) {
+  resend.emails.send({
+    from: "Tournament <onboarding@resend.dev>",
+    to: process.env.EMAIL_TO,
+    subject: "Nouă echipă înscrisă",
+    text: `Nume: ${firstName} ${lastName}
+Telefon: ${phone}
+An: ${birthYear}
+Echipă: ${teamName}`
+  })
+  .then(() => console.log("Email sent"))
+  .catch(err => console.log("Email error:", err));
+} else {
       console.log("⚠️ Email disabled: missing EMAIL_USER/EMAIL_PASS");
     }
 
