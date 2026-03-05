@@ -4,10 +4,8 @@ const mongoose = require("mongoose")
 const multer = require("multer")
 const nodemailer = require("nodemailer")
 const dns = require("dns");
-
 const cors = require("cors")
 const path = require("path")
-
 const fs = require("fs");
 
 const uploadsDir = path.join(__dirname, "uploads");
@@ -24,7 +22,6 @@ app.use("/uploads", express.static("uploads"))
 app.use(express.static("public"))
 
 /* ================= MONGODB ================= */
-const dns = require("dns");
 
 // Принудительно используем публичные DNS (Cloudflare/Google)
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
@@ -154,17 +151,6 @@ app.get("/teams", async (req, res) => {
   res.json(teams)
 })
 
-
-app.delete("/teams/:id", async (req, res) => {
-  try {
-    const deleted = await Team.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).send("Team not found");
-    res.send("Team deleted");
-  } catch (err) {
-    console.log(err);
-    res.status(400).send("Bad id");
-  }
-});
 
 app.listen(process.env.PORT || 5000, () =>
   console.log("Server running on port", process.env.PORT || 5000)
