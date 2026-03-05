@@ -7,6 +7,13 @@ const nodemailer = require("nodemailer")
 const cors = require("cors")
 const path = require("path")
 
+const fs = require("fs");
+
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 const app = express()
 
 app.use(cors())
@@ -39,7 +46,9 @@ const Team = mongoose.model("Team", teamSchema)
 /* ================= FILE UPLOAD ================= */
 
 const storage = multer.diskStorage({
-  destination: "uploads/",
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir)
+  },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname))
   }
