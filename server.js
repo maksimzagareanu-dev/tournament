@@ -1,37 +1,36 @@
-require("dotenv").config()
-const express = require("express")
-const mongoose = require("mongoose")
-const multer = require("multer")
-// const nodemailer = require("nodemailer")
+require("dotenv").config();
+
+const express = require("express");
+const mongoose = require("mongoose");
+const multer = require("multer");
 const dns = require("dns");
-const cors = require("cors")
-const path = require("path")
+const cors = require("cors");
+const path = require("path");
 const fs = require("fs");
 const { Resend } = require("resend");
+
+const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
+
 const uploadsDir = path.join(__dirname, "uploads");
-
-
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const app = express()
-
-app.use(cors())
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use("/uploads", express.static("uploads"))
-app.use(express.static("public"))
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
+app.use(express.static("public"));
 
 /* ================= MONGODB ================= */
 
-// Принудительно используем публичные DNS (Cloudflare/Google)
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB connected"))
-.catch(err => console.log(err))
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log(err));
 
 const teamSchema = new mongoose.Schema({
   firstName: String,
@@ -39,51 +38,39 @@ const teamSchema = new mongoose.Schema({
   phone: String,
   birthYear: Number,
   teamName: String,
-  logo: String
-})
+  logo: String,
+});
 
-const Team = mongoose.model("Team", teamSchema)
+const Team = mongoose.model("Team", teamSchema);
 
 /* ================= FILE UPLOAD ================= */
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadsDir)
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname))
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
+
+/* ================= ADMIN ================= */
+
+function requireAdmin(req, res, next) {
+  const token = req.headers["x-admin-token"];
+
+  if (!process.env.ADMIN_TOKEN) {
+    return res.status(500).send("ADMIN_TOKEN missing");
   }
-})
 
-const upload = multer({ storage })
+  if (token !== process.env.ADMIN_TOKEN) {
+    return res.status(401).send("Unauthorized");
+  }
 
-
-/* ================= EMAIL ================= */
-
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.log(" EMAIL_USER / EMAIL_PASS missing in .env");
+  next();
 }
-
-// const transporter = nodemailer.createTransport({
-//   host: "smtp.gmail.com",
-//   port: 587,
-//   secure: false,
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS
-//   },
-//   // заставляем использовать IPv4
-//   lookup: (hostname, options, cb) => dns.lookup(hostname, { family: 4 }, cb),
-//   connectionTimeout: 15000,
-//   greetingTimeout: 15000,
-//   socketTimeout: 20000,
-//   requireTLS: true,
-// });
-
-// transporter.verify((err) => {
-//   if (err) console.log(" Mail config error:", err);
-//   else console.log(" Mail transporter ready");
-// });
 
 /* ================= ROUTES ================= */
 
@@ -91,7 +78,7 @@ app.post("/register", upload.single("logo"), async (req, res) => {
   try {
     const { firstName, lastName, phone, birthYear, teamName } = req.body;
 
-    if (![2007,2008,2009,2010].includes(Number(birthYear))) {
+    if (![2007, 2008, 2009, 2010].includes(Number(birthYear))) {
       return res.status(400).send("Invalid year");
     }
 
@@ -101,51 +88,71 @@ app.post("/register", upload.single("logo"), async (req, res) => {
       phone,
       birthYear: Number(birthYear),
       teamName,
-      logo: req.file ? req.file.path : null
+      logo: req.file ? req.file.path : null,
     });
 
     await newTeam.save();
 
-    //  ответ сразу — регистрация не зависнет
+    // Сначала отвечаем пользователю
     res.send("Înregistrare reușită");
 
-    //  почта не должна ломать регистрацию
-    if (process.env.RESEND_API_KEY) {
-  resend.emails.send({
-    from: "Tournament <onboarding@resend.dev>",
-    to: process.env.EMAIL_TO,
-    subject: "Nouă echipă înscrisă",
-    text: `Nume: ${firstName} ${lastName}
+    // Потом отправляем письмо, чтобы регистрация не зависала
+    if (process.env.RESEND_API_KEY && process.env.EMAIL_TO) {
+      try {
+        const { data, error } = await resend.emails.send({
+          from: "Tournament <onboarding@resend.dev>",
+          to: [process.env.EMAIL_TO],
+          subject: "Nouă echipă înscrisă",
+          text: `Nume: ${firstName} ${lastName}
 Telefon: ${phone}
 An: ${birthYear}
-Echipă: ${teamName}`
-  })
-  .then(() => console.log("Email sent"))
-  .catch(err => console.log("Email error:", err));
-} else {
-      console.log("⚠️ Email disabled: missing EMAIL_USER/EMAIL_PASS");
-    }
+Echipă: ${teamName}`,
+        });
 
+        if (error) {
+          console.log("❌ Resend error:", error);
+        } else {
+          console.log("✅ Resend accepted:", data);
+        }
+      } catch (err) {
+        console.log("❌ Resend exception:", err);
+      }
+    } else {
+      console.log("⚠️ Missing RESEND_API_KEY or EMAIL_TO");
+    }
   } catch (err) {
     console.log("❌ /register error:", err);
-    if (!res.headersSent) res.status(500).send("Eroare server");
+    if (!res.headersSent) {
+      res.status(500).send("Eroare server");
+    }
   }
 });
 
-//  Простая защита админки токеном
-function requireAdmin(req, res, next) {
-  const token = req.headers["x-admin-token"]; // будем слать из админки
-  if (!process.env.ADMIN_TOKEN) return res.status(500).send("ADMIN_TOKEN missing");
-  if (token !== process.env.ADMIN_TOKEN) return res.status(401).send("Unauthorized");
-  next();
-}
-
 app.get("/teams", async (req, res) => {
-  const teams = await Team.find()
-  res.json(teams)
-})
+  try {
+    const teams = await Team.find();
+    res.json(teams);
+  } catch (err) {
+    console.log("❌ /teams error:", err);
+    res.status(500).send("Server error");
+  }
+});
 
+app.delete("/teams/:id", requireAdmin, async (req, res) => {
+  try {
+    const deleted = await Team.findByIdAndDelete(req.params.id);
 
-app.listen(process.env.PORT || 5000, () =>
-  console.log("Server running on port", process.env.PORT || 5000)
-);
+    if (!deleted) {
+      return res.status(404).send("Not found");
+    }
+
+    res.send("Deleted");
+  } catch (err) {
+    console.log("❌ delete error:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+app.listen(process.env.PORT || 5000, () => {
+  console.log("Server running on port", process.env.PORT || 5000);
+});
