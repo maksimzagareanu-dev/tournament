@@ -101,7 +101,7 @@ app.post("/register", upload.single("logo"), async (req, res) => {
       try {
         const { data, error } = await resend.emails.send({
           from: "Tournament <onboarding@resend.dev>",
-          to: [process.env.EMAIL_TO],
+          to: process.env.EMAIL_TO.split(","),
           subject: "Nouă echipă înscrisă",
           text: `Nume: ${firstName} ${lastName}
 Telefon: ${phone}
