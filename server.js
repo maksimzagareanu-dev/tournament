@@ -21,9 +21,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 const cleanTeamName = teamName.trim();
 
-const existingTeam = await Team.findOne({
-  teamName: cleanTeamName
-});
+
 
 if (existingTeam) {
   return res.status(400).send("Команда с таким названием уже зарегистрирована.");
