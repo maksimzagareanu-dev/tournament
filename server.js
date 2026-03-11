@@ -96,12 +96,14 @@ app.post("/register", upload.single("logo"), async (req, res) => {
     // Сначала отвечаем пользователю
     res.send("Înregistrare reușită");
 
-    // Потом отправляем письмо, чтобы регистрация не зависала
+    // Потом отправляем письмо
     if (process.env.RESEND_API_KEY && process.env.EMAIL_TO) {
       try {
+        console.log("EMAIL_TO raw:", process.env.EMAIL_TO);
+
         const { data, error } = await resend.emails.send({
           from: "Tournament <onboarding@resend.dev>",
-          to: process.env.EMAIL_TO.split(","),
+          to: process.env.EMAIL_TO.trim(),
           subject: "Nouă echipă înscrisă",
           text: `Nume: ${firstName} ${lastName}
 Telefon: ${phone}
@@ -110,21 +112,17 @@ Echipă: ${teamName}`,
         });
 
         if (error) {
-          console.log("❌ Resend error:", error);
+          console.error("Resend error:", error);
         } else {
-          console.log("✅ Resend accepted:", data);
+          console.log("Resend success:", data);
         }
       } catch (err) {
-        console.log("❌ Resend exception:", err);
+        console.error("Send catch error:", err);
       }
-    } else {
-      console.log("⚠️ Missing RESEND_API_KEY or EMAIL_TO");
     }
-  } catch (err) {
-    console.log("❌ /register error:", err);
-    if (!res.headersSent) {
-      res.status(500).send("Eroare server");
-    }
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).send("Eroare la înregistrare");
   }
 });
 
