@@ -17,6 +17,18 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+
+
+const cleanTeamName = teamName.trim();
+
+const existingTeam = await Team.findOne({
+  teamName: cleanTeamName
+});
+
+if (existingTeam) {
+  return res.status(400).send("Команда с таким названием уже зарегистрирована.");
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -81,11 +93,20 @@ app.post("/register", upload.single("logo"), async (req, res) => {
       return res.status(400).send("Invalid year");
     }
 
-    // проверяем количество команд
     const teamCount = await Team.countDocuments();
 
     if (teamCount >= 12) {
       return res.status(400).send("Регистрация закрыта. Достигнут лимит команд.");
+    }
+
+    const cleanTeamName = teamName.trim();
+
+    const existingTeam = await Team.findOne({
+      teamName: cleanTeamName
+    });
+
+    if (existingTeam) {
+      return res.status(400).send("Команда с таким названием уже зарегистрирована.");
     }
 
     const newTeam = new Team({
@@ -93,7 +114,7 @@ app.post("/register", upload.single("logo"), async (req, res) => {
       lastName,
       phone,
       birthYear: Number(birthYear),
-      teamName,
+      teamName: cleanTeamName,
       logo: req.file ? req.file.path : null,
     });
 
@@ -110,7 +131,7 @@ app.post("/register", upload.single("logo"), async (req, res) => {
           text: `Nume: ${firstName} ${lastName}
 Telefon: ${phone}
 An: ${birthYear}
-Echipă: ${teamName}`,
+Echipă: ${cleanTeamName}`,
         });
 
         if (error) {
