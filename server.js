@@ -17,16 +17,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-
-
-const cleanTeamName = teamName.trim();
-
-
-
-if (existingTeam) {
-  return res.status(400).send("Команда с таким названием уже зарегистрирована.");
-}
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
