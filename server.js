@@ -73,13 +73,19 @@ function requireAdmin(req, res, next) {
 }
 
 /* ================= ROUTES ================= */
-
 app.post("/register", upload.single("logo"), async (req, res) => {
   try {
     const { firstName, lastName, phone, birthYear, teamName } = req.body;
 
     if (![2007, 2008, 2009, 2010].includes(Number(birthYear))) {
       return res.status(400).send("Invalid year");
+    }
+
+    // проверяем количество команд
+    const teamCount = await Team.countDocuments();
+
+    if (teamCount >= 12) {
+      return res.status(400).send("Регистрация закрыта. Достигнут лимит команд.");
     }
 
     const newTeam = new Team({
@@ -93,14 +99,10 @@ app.post("/register", upload.single("logo"), async (req, res) => {
 
     await newTeam.save();
 
-    // Сначала отвечаем пользователю
     res.send("Înregistrare reușită");
 
-    // Потом отправляем письмо
     if (process.env.RESEND_API_KEY && process.env.EMAIL_TO) {
       try {
-        console.log("EMAIL_TO raw:", process.env.EMAIL_TO);
-
         const { data, error } = await resend.emails.send({
           from: "Tournament <onboarding@resend.dev>",
           to: process.env.EMAIL_TO.trim(),
@@ -120,6 +122,7 @@ Echipă: ${teamName}`,
         console.error("Send catch error:", err);
       }
     }
+
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).send("Eroare la înregistrare");
